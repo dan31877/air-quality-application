@@ -1,12 +1,36 @@
-import React, { useState } from 'react';
-import { Button, Form, Segment, Header, Icon } from 'semantic-ui-react'
+import axios from 'axios';
+import React, { useEffect, useState } from 'react';
+import { Button, Form, Segment, Header, Icon, Portal } from 'semantic-ui-react'
 
-const InputForm = () => {
+const InputForm = ({setAqMeasurementData}) => {
 
     const [formData, setFormData] = useState({
         city1: "",
         city2: ""
     });
+    const [portalOpen, setPortalOpen] = useState(false); 
+    // const [aqMeasurementData, setAqMeasurementData] = useState([]); 
+
+    const getAqMeasurementData = () => {
+        const url = `https://api.openaq.org/v2/latest?limit=100&page=1&offset=0&sort=desc&radius=1000&city=${formData.city1}&city=${formData.city2}&order_by=lastUpdated&dumpRaw=false`; 
+        axios.get(url) 
+        .then((responseData) => {
+            responseData.data.results.map((res) => {
+                const measurements = res.measurements[0];
+                const measurementsObject = {...measurements, city: res.city}; 
+                setAqMeasurementData(prevArray => [...prevArray, measurementsObject]); 
+                console.log(measurementsObject);
+            })
+        })
+        .catch(error => console.error(`Error: ${error}`))
+    }
+
+    // useEffect(() => {
+    //     console.log(aqMeasurementData);
+    // }, [aqMeasurementData]); 
+
+    const handlePortalClose = () => setPortalOpen(false);
+    const handlePortalOpen = () => setPortalOpen(true);
 
     const handleInputChange = (e) => {
         const nextFormData = {
@@ -18,14 +42,17 @@ const InputForm = () => {
 
     const onSubmit = (e) => {
         e.preventDefault();
-        alert(JSON.stringify(formData, null, 2));
-        console.log(isValid); 
+        // alert(JSON.stringify(formData, null, 2));
+        console.log(formData); 
+        // handlePortalOpen(); 
+        // console.log(isValid); 
+        getAqMeasurementData(); 
         setFormData({city1: "", city2: ""}); 
     };
 
-    const isValid = () => {
-        return (formData.city1 && formData.city2 ); 
-    }
+    // const isValid = () => {
+    //     return (formData.city1 && formData.city2 ); 
+    // }
 
     return (
         <div>
@@ -55,6 +82,28 @@ const InputForm = () => {
                     />
                     <Button type='submit' positive>Submit</Button>
                 </Form>
+                {/* <div>{formData.city1}</div> */}
+                <Portal onClose={handlePortalClose} open={portalOpen}>
+                    <Segment
+                    style={{
+                        left: '40%',
+                        position: 'fixed',
+                        top: '50%',
+                        zIndex: 1000,
+                    }}
+                    >
+                    <Header>The cities have been assigned successfully. </Header>
+                    <div>{formData.city1}</div>
+                    <p>City 1: {formData.city1}</p>
+                    <p>City 2: {formData.city2}</p>
+
+                    <Button
+                        content='Close Portal'
+                        negative
+                        onClick={handlePortalClose}
+                    />
+                    </Segment>
+                </Portal>
             </Segment>
         </div>
     );
