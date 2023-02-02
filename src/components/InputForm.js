@@ -1,8 +1,8 @@
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
-import { Button, Form, Segment, Header, Icon, Portal } from 'semantic-ui-react'
+import { Button, Form, Segment, Header, Icon, Portal, Divider } from 'semantic-ui-react'
 
-const InputForm = ({setAqMeasurementData}) => {
+const InputForm = ( {setAqMeasurementData} ) => {
 
     const [formData, setFormData] = useState({
         city1: "",
@@ -19,7 +19,6 @@ const InputForm = ({setAqMeasurementData}) => {
                 const measurements = res.measurements[0];
                 const measurementsObject = {...measurements, city: res.city}; 
                 setAqMeasurementData(prevArray => [...prevArray, measurementsObject]); 
-                console.log(measurementsObject);
             })
         })
         .catch(error => console.error(`Error: ${error}`))
@@ -57,13 +56,20 @@ const InputForm = ({setAqMeasurementData}) => {
     return (
         <div>
             <Segment padded='very'>
+                <Header as='h2' color='blue' textAlign='center'>
+                    <Header.Content>
+                        City Input Form
+                    </Header.Content>
+                </Header>
                 <Header as='h4' color='blue'>
                 <Icon name='info circle' />
                 <Header.Content>
                     Enter two city names in the input fields below. Click submit to display the air quality of the corresponding cities for comparison.
                 </Header.Content>
                 </Header>
-                <Form onSubmit={onSubmit}>
+                <Divider horizontal />
+                <Divider horizontal />
+                <Form size='large' onSubmit={onSubmit}>
                     <Form.Input
                         label='City 1'
                         placeholder='City 1'
@@ -80,9 +86,9 @@ const InputForm = ({setAqMeasurementData}) => {
                         required
                         onChange={handleInputChange}
                     />
+                    <Divider horizontal />
                     <Button type='submit' positive>Submit</Button>
                 </Form>
-                {/* <div>{formData.city1}</div> */}
                 <Portal onClose={handlePortalClose} open={portalOpen}>
                     <Segment
                     style={{
