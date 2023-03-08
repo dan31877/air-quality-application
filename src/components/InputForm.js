@@ -1,57 +1,63 @@
 import axios from 'axios';
-import React, { useEffect, useState } from 'react';
-import { Button, Form, Segment, Header, Icon, Portal, Divider } from 'semantic-ui-react'
+import React, { useState } from 'react';
+import { Button, Form, Segment, Header, Icon, Divider, Modal } from 'semantic-ui-react'
 
 const InputForm = ( {setAqMeasurementData} ) => {
 
-    const [formData, setFormData] = useState({
-        city1: "",
-        city2: ""
-    });
+    const [formData, setFormData] = useState([
+            { id: 1, name: "City 1", value: '', error: ''},
+            { id: 2, name: "City 2", value: '', error: ''}
+        ]
+    ); 
+
     const [portalOpen, setPortalOpen] = useState(false); 
-    // const [aqMeasurementData, setAqMeasurementData] = useState([]); 
 
     const getAqMeasurementData = () => {
-        const url = `https://api.openaq.org/v2/latest?limit=100&page=1&offset=0&sort=desc&radius=1000&city=${formData.city1}&city=${formData.city2}&order_by=lastUpdated&dumpRaw=false`; 
+        const url = `https://api.openaq.org/v2/latest?limit=100&page=1&offset=0&sort=desc&radius=1000&city=${formData[0].value}&city=${formData[1].value}&order_by=lastUpdated&dumpRaw=false`; 
         axios.get(url) 
         .then((responseData) => {
-            responseData.data.results.map((res) => {
-                const measurements = res.measurements[0];
-                const measurementsObject = {...measurements, city: res.city}; 
-                setAqMeasurementData(prevArray => [...prevArray, measurementsObject]); 
-            })
+            if(responseData.data.results.length < 2) { 
+                handlePortalOpen(); 
+            } else {
+                responseData.data.results.forEach((res) => {
+                    const measurements = res.measurements[0];
+                    const measurementsObject = {...measurements, city: res.city}; 
+                    setAqMeasurementData(prevArray => [...prevArray, measurementsObject]); 
+            })}
         })
         .catch(error => console.error(`Error: ${error}`))
     }
 
-    // useEffect(() => {
-    //     console.log(aqMeasurementData);
-    // }, [aqMeasurementData]); 
-
     const handlePortalClose = () => setPortalOpen(false);
     const handlePortalOpen = () => setPortalOpen(true);
 
-    const handleInputChange = (e) => {
-        const nextFormData = {
-          ...formData,
-          [e.target.name]: e.target.value,
-        };
-        setFormData(nextFormData);
+    const handleInputChange = (index, event) => {
+        const target = event.target;
+        const name = target.name;
+        let error = '';
+
+        if( !(/^[A-Za-z\s]*$/.test(target.value)) ) {
+            error = `${name} should only contain letters and spaces.`
+        }
+
+        if (!target.value) {
+            error = `${name} field cannot be empty.`
+        }
+
+        setFormData(            
+            formData.map((city) => city.id === index+1
+            ? { ...city, value: target.value, touched: true, error: error }
+            : { ...city }
+        ));
     };
 
     const onSubmit = (e) => {
         e.preventDefault();
-        // alert(JSON.stringify(formData, null, 2));
-        console.log(formData); 
-        // handlePortalOpen(); 
-        // console.log(isValid); 
         getAqMeasurementData(); 
-        setFormData({city1: "", city2: ""}); 
+        setFormData(            
+            formData.map((city) => ({ ...city, value: '', error: '' }))
+        ); 
     };
-
-    // const isValid = () => {
-    //     return (formData.city1 && formData.city2 ); 
-    // }
 
     return (
         <div>
@@ -70,46 +76,37 @@ const InputForm = ( {setAqMeasurementData} ) => {
                 <Divider horizontal />
                 <Divider horizontal />
                 <Form size='large' onSubmit={onSubmit}>
-                    <Form.Input
-                        label='City 1'
-                        placeholder='City 1'
-                        name='city1'
-                        value={formData.city1}
-                        required
-                        onChange={handleInputChange}
-                    />
-                    <Form.Input
-                        label='City 2'
-                        placeholder='City 2'
-                        name='city2'
-                        value={formData.city2}
-                        required
-                        onChange={handleInputChange}
-                    />
+                    {formData.map((city, idx) => (
+                        <Form.Input
+                            key={city.name + city.id}
+                            label={city.name}
+                            placeholder={city.name}
+                            name={city.name}
+                            value={city.value}
+                            required
+                            error={city.error !== '' && city.error}
+                            onChange={(e) => handleInputChange(idx, e)}
+                        />
+                    ))}
                     <Divider horizontal />
                     <Button type='submit' positive>Submit</Button>
                 </Form>
-                <Portal onClose={handlePortalClose} open={portalOpen}>
-                    <Segment
-                    style={{
-                        left: '40%',
-                        position: 'fixed',
-                        top: '50%',
-                        zIndex: 1000,
-                    }}
-                    >
-                    <Header>The cities have been assigned successfully. </Header>
-                    <div>{formData.city1}</div>
-                    <p>City 1: {formData.city1}</p>
-                    <p>City 2: {formData.city2}</p>
-
-                    <Button
-                        content='Close Portal'
-                        negative
-                        onClick={handlePortalClose}
-                    />
-                    </Segment>
-                </Portal>
+                    <Modal
+                        centered={true}
+                        open={portalOpen}
+                        onClose={() => handlePortalClose()}
+                        onOpen={() => handlePortalOpen()}
+                        >
+                        <Modal.Header>There was a problem with the data from the Cities</Modal.Header>
+                        <Modal.Content>
+                            <Modal.Description>
+                            There was a problem with one or both of the cities entered. Please use more well known cities in future searches.
+                            </Modal.Description>
+                        </Modal.Content>
+                        <Modal.Actions>
+                            <Button negative onClick={() => handlePortalClose()}>Close</Button>
+                        </Modal.Actions>
+                </Modal>
             </Segment>
         </div>
     );
